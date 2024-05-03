@@ -2,7 +2,7 @@
 Web page using Leaflet to display markers for a YouTuber's travels with links to videos.
 
 <p align="center">
-<img src="https://github.com/EngineersNeedArt/AdVANtureMapSite/blob/21018cf69b3bae198c2ce0c0d977ee1a5941ce70/screenshot.png">
+<img src="https://github.com/EngineersNeedArt/AdVANtureMapSite/blob/b4bc2316736c1402a006d2e2b6f45f26f301154b/screenshot.png">
 <a href="https://engineersneedart.com/OneAdvanture/index.html" target="_blank">The current place</a> I am hosting the site.
 </p>
 
