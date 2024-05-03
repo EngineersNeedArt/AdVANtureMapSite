@@ -36,7 +36,7 @@ The "Latest" button always pulls the latitude and longitude from the zero-th ([0
 
 ### AI
 
-Rolling my own HTML/CSS in the past has consisted of lots of web searching/browsing just to move incrementally along. Each search session generally results in only a small step forward — and then some new hurdle arises and a new search session begins.
+Rolling my own HTML/CSS in the past has consisted of a lot of web searching/browsing just to move incrementally along. Each search session generally results in only a small step forward — and then some new hurdle arises and a new search session begins.
 
 From my first interaction with Claude (claude.ai) where I described a map view of the U.S. with markers representing locations I was presented with a number of options for the mapping library with descriptions of each. Claude also presented boilerplate HTML for a simple map web page showing both New York and L.A. marked up. I have no doubt that had I searched the web manually as I had done in the past I might well have ended up with the same boilerplate code but it's hard to know how many dead-end alleys I would have had to first abandon.
 
