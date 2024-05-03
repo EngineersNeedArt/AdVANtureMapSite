@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>One AdVANture YouTube Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" crossorigin="" />
+	<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="" />
+	<link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+	<div id="map">
+	</div>
+	<div id="footer">
+		<img src="one-advanture-logo.svg" alt="One AdVANture Logo" width="300" style="display: block; margin-left: auto; margin-right: auto;">
+	</div>
+	<button id="whereButton">Latest</button>
+	
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+	<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+    <script>
+		var sitesArray = null;
+		var map = null;
+		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+		const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+		
+		// Function to get the height of the browser's footer
+		function getBrowserFooterHeight() {
+			return window.innerHeight - document.documentElement.clientHeight;
+		}
+		
+		// Adjust the height of the footer.
+		function adjustFooterHeight() {
+			if ((!isIOS) || (!isSafari)) {
+				return;
+			}
+			
+			const browserFooterHeight = getBrowserFooterHeight();
+			const footer = document.querySelector('#footer');
+			footer.style.height = `calc(60px + ${browserFooterHeight}px)`;
+		}
+		
+		function initializeSitesArray() {
+			// Get the JSON data from the <script> tag
+			const jsonElement = document.getElementById('jsonData');
+			const jsonData = JSON.parse(jsonElement.textContent);
+			
+			// Initialize array of dictionary objects.
+			sitesArray = jsonData.map(obj => ({ ...obj }));
+			
+			// Update map.
+			initializeMap(sitesArray);
+		}
+		
+		function formattedDate (rawDate) {
+			const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+			const dateObject = new Date (rawDate);
+			const year = dateObject.getFullYear();
+			const monthIndex = dateObject.getMonth();
+			const monthName = months[monthIndex];
+			const day = dateObject.getDate();
+			
+			// Basic formatting using concatenation.
+			return `${monthName} ${day}, ${year}`;
+		}
+		
+		function initializeMap(data) {
+			// Create the Leaflet map.
+			map = L.map('map').setView([37.8, -96], 4);			
+			
+			// Add a tile layer to the map
+			L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+				maxZoom: 19,
+			}).addTo(map);
+			
+			// Create a marker cluster group.
+			var markers = L.markerClusterGroup({
+				maxClusterRadius: 42,			// Decrease cluster radius.
+				disableClusteringAtZoom: 8		// Disable clustering at zoom level 8 and above
+			});
+			
+			const svgIconUrl = 'van.svg';
+			const svgIcon = L.icon({
+				iconUrl: svgIconUrl,
+				iconSize: [48, 48], 	// Adjust this to match your SVG dimensions
+				iconAnchor: [24, 38], 	// Adjust this to position the icon correctly
+				popupAnchor: [0, -28]
+			});
+			
+			// Add markers to the map based on the data
+			data.forEach(item => {
+				// Create popup.
+				let popupContentHtml = `
+				<div class="popup-content">
+					<h3>${item.title}</h3>
+					<a href="${item.url}" target="_blank">${formattedDate(item.date)}</a>
+				`;
+				if ((item.url2) && (item.date2)) {
+				popupContentHtml += `
+					<a href="${item.url2}" target="_blank">${formattedDate(item.date2)}</a>
+					`;
+				}
+				if ((item.url3) && (item.date3)) {
+				popupContentHtml += `
+					<a href="${item.url3}" target="_blank">${formattedDate(item.date3)}</a>
+					`;
+				}
+				popupContentHtml += '</div>';
+				const popup = L.popup().setContent(popupContentHtml);
+				
+				// Create marker, bind popup.
+				const marker = L.marker([item.lat, item.lon], {icon: svgIcon});
+				marker.bindPopup(popup);
+				
+				// Add marker to the cluster group.
+				markers.addLayer(marker);
+			});
+			
+			// Add the cluster group to the map.
+			map.addLayer(markers);
+			adjustFooterHeight ();
+		}
+		
+		// Define the function to be called when the button is clicked
+		function handleWhereButtonClick() {
+			if ((sitesArray) && (map)) {
+				const whereData = sitesArray[0];
+				map.flyTo ([whereData.lat, whereData.lon], 11);
+			}
+		}
+		
+		// Call the function when the page finishes loading.
+		window.addEventListener('load', function() {
+			initializeSitesArray();
+		});
+		
+		// Resize the map whenever the window is resized
+		window.addEventListener('resize', function() {
+			adjustFooterHeight ();
+    	});
+		
+		// Add an event listener to button.
+		document.getElementById('whereButton').addEventListener('click', handleWhereButtonClick);
+    </script>
+	
+	<script id="jsonData" type="application/json">
+		[
+			{ "title": "Duncan Reservoir", "lat": 43.0713512, "lon": -120.9453553, "url": "https://youtu.be/-9deXESlZNY", "date": "4/27/2024"}, 
+			{ "title": "Casa Diablo Mine", "lat": 37.5377297, "lon": -118.5572802, "url": "https://youtu.be/V9qBQyPaLr4", "date": "4/13/2024"}, 
+			{ "title": "Pleasant Valley Pit Camp.", "lat": 37.4009261, "lon": -118.5089552, "url": "https://youtu.be/V9qBQyPaLr4", "date": "4/13/2024"}, 
+			{ "title": "Death Valley NP", "lat": 36.2381773, "lon": -117.4108665, "url": "https://youtu.be/U4BE6JV9iCI", "date": "4/6/2024"}, 
+			{ "title": "Anza Borrego SP", "lat": 33.2459809, "lon": -116.3819554, "url": "https://youtu.be/hozdZwwSDxo", "date": "3/30/2024", "url2": "https://youtu.be/9u2q50QB4TM", "date2": "3/30/2024"}, 
+			{ "title": "Badlands of California", "lat": 33.2818889, "lon": -116.0646880, "url": "https://youtu.be/K1dEEKPphRA", "date": "3/16/2024"},  
+			{ "title": "Parker", "lat": 34.2042068, "lon": -114.4173379, "url": "https://youtu.be/X0ZLnyO5WuY", "date": "3/9/2024"}, 
+			{ "title": "Saddle Mountain", "lat": 33.4488836, "lon": -113.0444992, "url": "https://youtu.be/pe4rbTKnTts", "date": "3/2/2024"}, 
+			{ "title": "American Girl Mine", "lat": 32.8364746, "lon": -114.8073928, "url": "https://youtu.be/pe4rbTKnTts", "date": "3/2/2024"}, 
+			{ "title": "Whitewater Draw Wildlife Area", "lat": 31.561564, "lon": -109.7225897, "url": "https://youtu.be/gL2cvB8fhDc", "date": "2/24/2024"}, 
+			{ "title": "Indian Bread Rocks Rec. Area", "lat": 32.2407410, "lon": -109.5061213, "url": "https://youtu.be/1yXqw0h73Cw", "date": "2/17/2024"}, 
+			{ "title": "Hot Well Dunes Tubs", "lat": 32.5236318, "lon": -109.4265864, "url": "https://youtu.be/ctRM1JiOVSE", "date": "2/10/2024"}, 
+			{ "title": "Hot Springs Camp.", "lat": 32.5217462, "lon": -109.4345989, "url": "https://youtu.be/ctRM1JiOVSE", "date": "2/10/2024"},
+			{ "title": "Riverview Camp.", "lat": 32.8852237, "lon": -109.4806071, "url": "https://youtu.be/NR-R55hralY", "date": "12/30/2023"}, 
+			{ "title": "N. Black Hills Ctry. Bywy.", "lat": 32.8418815, "lon": -109.4227220, "url": "https://youtu.be/Ww9zLBHrsLI", "date": "12/23/2023"}, 
+			{ "title": "Cosmic Camp.", "lat": 33.4789375, "lon": -108.9214645, "url": "https://youtu.be/i_wvhRYw_P0", "date": "12/9/2023"}, 
+			{ "title": "The Catwalk", "lat": 33.3726874, "lon": -108.8421227, "url": "https://youtu.be/i_wvhRYw_P0", "date": "12/9/2023"}, 
+			{ "title": "Dalton Canyon Boondck.", "lat": 35.6684314, "lon": -105.7089723, "url": "https://youtu.be/Nv6a-2ElfdY", "date": "11/25/2023"}, 
+			{ "title": "Davis-Willow Disp. Camp.", "lat": 35.7543362, "lon": -105.6708424, "url": "https://youtu.be/Nv6a-2ElfdY", "date": "11/25/2023"}, 
+			{ "title": "Dalton Canyon Boondck.", "lat": 35.8390509, "lon": -105.6554110, "url": "https://youtu.be/Nv6a-2ElfdY", "date": "11/25/2023"}, 
+			{ "title": "McPherson Co. St. Lake", "lat": 38.4754565, "lon": -97.4703605, "url": "https://youtu.be/9wPy1JVAZ3k", "date": "11/4/2023"}, 
+			{ "title": "Omaha Zoo", "lat": 41.2258688, "lon": -95.9296842, "url": "https://youtu.be/uz4QHCeaqWw", "date": "10/28/2023"}, 
+			{ "title": "Birch Grove Camp.", "lat": 46.6845223, "lon": -91.0607017, "url": "https://youtu.be/p3OXLaU1aR0", "date": "10/21/2023"}, 
+			{ "title": "Bayview Beach (NO CAMPING)", "lat": 46.7480055, "lon": -90.8847833, "url": "https://youtu.be/p3OXLaU1aR0", "date": "10/21/2023"}, 
+			{ "title": "Devils Island, Apostle NP", "lat": 47.0745134, "lon": -90.7226575, "url": "https://youtu.be/p3OXLaU1aR0", "date": "10/21/2023"}, 
+			{ "title": "Sonyea State Forest", "lat": 42.6675952, "lon": -77.8309790, "url": "https://youtu.be/uAU4Hqx-hsc", "date": "10/7/2023"}, 
+			{ "title": "Sugar Hill Rec. Area", "lat": 42.3868856, "lon": -77.0030561, "url": "https://youtu.be/2Z37xyI1GP0", "date": "9/23/2023"}, 
+			{ "title": "Mt. Tabor", "lat": 43.3570653, "lon": -72.9298864, "url": "https://youtu.be/y6OPtNVhZt8", "date": "9/16/2023"}, 
+			{ "title": "Cowans Cove W. Camp.", "lat": 45.7008908, "lon": -69.6834603, "url": "https://youtu.be/TXV2ENnEkes", "date": "9/2/2023"}, 
+			{ "title": "Cowan West Camp.", "lat": 45.7010761, "lon": -69.6839753, "url": "https://youtu.be/h8EoK5F-zOE", "date": "8/26/2023"}, 
+			{ "title": "Point Verde Lighthouse", "lat": 47.2380791, "lon": -54.0144619, "url": "https://youtu.be/XbfsT5kyB0E", "date": "8/12/2023"}, 
+			{ "title": "Holyrood Pond Int. Ctr.", "lat": 46.7852739, "lon": -53.6268603, "url": "https://youtu.be/BZVK92PxSzE", "date": "8/5/2023"}, 
+			{ "title": "Waterford River Valley Camp.", "lat": 47.5271241, "lon": -52.8274294, "url": "https://youtu.be/gjVybo_n1dU", "date": "7/29/2023"}, 
+			{ "title": "Cape Spears Lighthouse", "lat": 47.5199436, "lon": -52.6261652, "url": "https://youtu.be/gjVybo_n1dU", "date": "7/29/2023"}, 
+			{ "title": "Dildo, New Foundland", "lat": 47.5735634, "lon": -53.5983632, "url": "https://youtu.be/MOThdb8oCjY", "date": "7/22/2023"}, 
+			{ "title": "Fort Point Lighthouse", "lat": 48.3613066, "lon": -53.3476976, "url": "https://youtu.be/ujpQ3r9ZY3g", "date": "7/15/2023"}, 
+			{ "title": "John Cabot Mncpl. Dry Camp.", "lat": 48.6983354, "lon": -53.0890200, "url": "https://youtu.be/t8-q_-gc68Q", "date": "7/8/2023"}, 
+			{ "title": "Dungeon Provincial Park", "lat": 48.6668145, "lon": -53.0843372, "url": "https://youtu.be/t8-q_-gc68Q", "date": "7/8/2023"}, 
+			{ "title": "Puffin Viewing", "lat": 48.6259058, "lon": -53.0199572, "url": "https://youtu.be/t8-q_-gc68Q", "date": "7/8/2023"}, 
+			{ "title": "Musgrave Harbour", "lat": 49.3879099, "lon": -53.7563184, "url": "https://youtu.be/e-i5-TnNJGo", "date": "7/5/2023"}, 
+			{ "title": "Twillingate (Boat Tour)", "lat": 49.6459382, "lon": -54.7668895, "url": "https://youtu.be/QGEiRAM0Bho", "date": "7/1/2023"}, 
+			{ "title": "Fogo Island", "lat": 49.6967399, "lon": -54.2731012, "url": "https://youtu.be/AbLZJzw89qo", "date": "6/23/2023"}, 
+			{ "title": "Notre Dame Prov. Park", "lat": 49.11982, "lon": -55.0965398, "url": "https://youtu.be/h13eSZLr4NU", "date": "6/22/2023"}, 
+			{ "title": "Gros Morne NP (Boondocking)", "lat": 49.85665, "lon": -57.82515, "url": "https://youtu.be/-LtzWdjA7NI", "date": "6/17/2023"}, 
+			{ "title": "Oceanview Park", "lat": 49.5091471, "lon": -55.4473828, "url": "https://youtu.be/aAbggRhOzgw", "date": "6/10/2023"}, 
+			{ "title": "Long Point Lighthouse", "lat": 49.6876731, "lon": -54.8030228, "url": "https://youtu.be/PMj-LnSGRGs", "date": "6/3/2023"}, 
+			{ "title": "Spiller's Cove", "lat": 49.67518, "lon": -54.75185, "url": "https://youtu.be/l0YtT3WhO-k", "date": "5/27/2023"}, 
+			{ "title": "Cape Norman Lighthouse", "lat": 51.6283407, "lon": -55.9080143, "url": "https://youtu.be/kKmLyolIwkA", "date": "5/20/2023"}, 
+			{ "title": "Blanc-Sablon (Ferry)", "lat": 51.4191801, "lon": -57.1551176, "url": "https://youtu.be/o-bOIOTOzB0", "date": "5/13/2023"}, 
+			{ "title": "Trans-Labrador Hwy. (In-Transit)", "lat": 52.9503942, "lon": -66.9402012, "url": "https://youtu.be/RpDm2D_CwYg", "date": "5/6/2023"}, 
+			{ "title": "Bash Bish Falls", "lat": 42.1150409, "lon": -73.4964889, "url": "https://youtu.be/20snBs_2jjI", "date": "4/29/2023"}, 
+			{ "title": "Mystic Seaport Museum", "lat": 41.3614639, "lon": -73.4964889, "url": "https://youtu.be/20snBs_2jjI", "date": "4/29/2023"}, 
+			{ "title": "Ricketts Glen SP", "lat": 41.335629, "lon": -76.3020026, "url": "https://youtu.be/-CFQvPAavmA", "date": "4/22/2023"}, 
+			{ "title": "Campsite M1", "lat": 41.3566689, "lon": -79.0702792, "url": "https://youtu.be/YDye7LCF1YY", "date": "4/15/2023"}, 
+			{ "title": "Clarion River", "lat": 41.3961970, "lon": -78.9136681, "url": "https://youtu.be/9AF4uMRDRw4", "date": "4/8/2023"}, 
+			{ "title": "Little Fort Camp.", "lat": 38.8673118, "lon": -78.4444930, "url": "https://youtu.be/WQVagLDXeik", "date": "4/1/2023"}, 
+			{ "title": "Woodstock Tower Trl.", "lat": 38.8719813, "lon": -78.4472027, "url": "https://youtu.be/WQVagLDXeik", "date": "4/1/2023"}, 
+			{ "title": "Seven Bends SP", "lat": 38.8709881, "lon": -78.4931426, "url": "https://youtu.be/WQVagLDXeik", "date": "4/1/2023"}, 
+			{ "title": "Ocracoke Camp.", "lat": 35.1262056, "lon": -75.921714, "url": "https://youtu.be/9MWmEdlnYwo", "date": "3/25/2023"}, 
+			{ "title": "Santee Coastal Resv.", "lat": 33.1539478, "lon": -79.3674841, "url": "https://youtu.be/pUDDDoVRjiY", "date": "3/18/2023"}, 
+			{ "title": "Angel Oak Tree", "lat": 32.7173258, "lon": -80.0803321, "url": "https://youtu.be/pUDDDoVRjiY", "date": "3/18/2023"}, 
+			{ "title": "Silver Springs (Kayaking)", "lat": 29.2157639, "lon": -81.9951747, "url": "https://youtu.be/Np1gouqlaI4", "date": "3/4/2023"}, 
+			{ "title": "Van Life Gathering", "lat": 28.3539173, "lon": -82.2445597, "url": "https://youtu.be/JuR81o1cSvw", "date": "2/18/2023"}, 
+			{ "title": "Serenova Tract Camp.", "lat": 28.3291558, "lon": -82.5693654, "url": "https://youtu.be/uVkkMLxmdXQ", "date": "2/11/2023"}, 
+			{ "title": "Tiny House Fest.", "lat": 27.8600807, "lon": -82.8664745, "url": "https://youtu.be/WYdsXJq9Ls8", "date": "2/4/2023"}, 
+			{ "title": "Key West", "lat": 24.5503243, "lon": -81.7981499, "url": "https://youtu.be/uQ9lc75mHXA", "date": "1/28/2023"}, 
+			{ "title": "Dupuis Camp.", "lat": 27.0012397, "lon": -80.5656777, "url": "https://youtu.be/zWknkVEe5QU", "date": "1/21/2023"}, 
+			{ "title": "Venice (Shark Teeth)", "lat": 27.1149164, "lon": -82.4559232, "url": "https://youtu.be/r1x9sPAR6sc", "date": "1/14/2023"}, 
+			{ "title": "Inverness", "lat": 28.8447168, "lon": -82.4204606, "url": "https://youtu.be/hubKAGBOUQk", "date": "1/7/2023"}, 
+			{ "title": "St. Augustine", "lat": 29.9065539, "lon": -81.346697, "url": "https://youtu.be/ZuKKddwz-mI", "date": "12/24/2022"}, 
+			{ "title": "Davenport Landing", "lat": 29.4731847, "lon": -81.7734366, "url": "https://youtu.be/NHyHQgLLLJE", "date": "12/17/2022"}, 
+			{ "title": "Georgia Aquarium", "lat": 33.7633864, "lon": -84.3976901, "url": "https://youtu.be/adgnc0mO00c", "date": "12/3/2022"}, 
+			{ "title": "S-Tree Camp.", "lat": 37.3869056, "lon": -84.0786427, "url": "https://youtu.be/yki6ut73sr0", "date": "11/19/2022"}, 
+			{ "title": "Boundary Dam", "lat": 48.98401, "lon": -117.35178, "url": "https://youtu.be/7pnvc7O1Gtk", "date": "11/5/2022"}, 
+			{ "title": "Beet Harvest", "lat": 43.59917, "lon": -83.9014023, "url": "https://youtu.be/XrWtmjTi4PQ", "date": "10/29/2022"}, 
+			{ "title": "Chopaka Lake Camp.", "lat": 48.9131908, "lon": -119.7019418, "url": "https://youtu.be/F9tegN-QP04", "date": "10/22/2022"}, 
+			{ "title": "Gorge Powerhouse", "lat": 48.6757649, "lon": -121.2432902, "url": "https://youtu.be/JvRUxul-hdc", "date": "10/15/2022"}, 
+			{ "title": "Diablo Lake", "lat": 48.7142528, "lon": -121.1283425, "url": "https://youtu.be/JvRUxul-hdc", "date": "10/15/2022"}, 
+			{ "title": "Blue Lake Trail", "lat": 48.5190205, "lon": -120.7047256, "url": "https://youtu.be/JvRUxul-hdc", "date": "10/15/2022"}, 
+			{ "title": "Fort Worden SP", "lat": 48.1391539, "lon": -122.772029, "url": "https://youtu.be/IuZu2WYRmvw", "date": "10/8/2022"}, 
+			{ "title": "S. Fork Hoh Camp.", "lat": 47.8065020, "lon": -123.9956230, "url": "https://youtu.be/sNnh4VEn020", "date": "10/1/2022"}, 
+			{ "title": "Lyre River Camp.", "lat": 48.1500240, "lon": -123.8328907, "url": "https://youtu.be/9iCtt-qadFE", "date": "9/17/2022"}, 
+			{ "title": "Devil's Punchbowl", "lat": 48.0830359, "lon": -123.7876904, "url": "https://youtu.be/9iCtt-qadFE", "date": "9/17/2022"}, 
+			{ "title": "Spruce Railroad Trl.", "lat": 48.0933280, "lon": -123.8026498, "url": "https://youtu.be/9iCtt-qadFE", "date": "9/17/2022"}, 
+			{ "title": "Eagle Creek Trl.", "lat": 45.6369366, "lon": -121.9196877, "url": "https://youtu.be/skMjKLnS5BI", "date": "9/10/2022"}, 
+			{ "title": "15 Mile Camp.", "lat": 45.3505355, "lon": -121.4732542, "url": "https://youtu.be/ooCfSeiW13I", "date": "9/3/2022"}, 
+			{ "title": "8 Mile Camp.", "lat": 45.4063794, "lon": -121.4577034, "url": "https://youtu.be/ooCfSeiW13I", "date": "9/3/2022"}, 
+			{ "title": "Trail of Ten Waterfalls", "lat": 44.8760584, "lon": -122.6530640, "url": "https://youtu.be/DAtalqE_3ow", "date": "8/27/2022"}, 
+			{ "title": "Hult Log Storage Rsrvr", "lat": 44.2428739, "lon": -123.5016608, "url": "https://youtu.be/liDDLIkFcEc", "date": "8/20/2022"}, 
+			{ "title": "Sahalie Waterfall", "lat": 44.3484535, "lon": -121.9963459, "url": "https://youtu.be/Gg_jdFf05vg", "date": "8/13/2022"}, 
+			{ "title": "Koosah Waterfall", "lat": 44.3443676, "lon": -121.9995321, "url": "https://youtu.be/Gg_jdFf05vg", "date": "8/13/2022"}, 
+			{ "title": "Lava Field Camping", "lat": 44.3238330, "lon": -121.9931987, "url": "https://youtu.be/Gg_jdFf05vg", "date": "8/13/2022"}, 
+			{ "title": "Glass Buttes", "lat": 43.5430680, "lon": -120.0177240, "url": "https://youtu.be/56V2Xw1-iZ4", "date": "8/6/2022"}, 
+			{ "title": "Slocum Creek Camp.", "lat": 43.3209334, "lon": -117.3187286, "url": "https://youtu.be/2pcq3BRacfY", "date": "7/30/2022"}, 
+			{ "title": "Juniper Gulch Trl.", "lat": 43.2986414, "lon": -117.2705485, "url": "https://youtu.be/2pcq3BRacfY", "date": "7/30/2022"}, 
+			{ "title": "Lake Owyhee", "lat": 43.3218560, "lon": -117.3240719, "url": "https://youtu.be/2pcq3BRacfY", "date": "7/30/2022"}, 
+			{ "title": "Bell Rapids", "lat": 42.793133, "lon": -114.9500882, "url": "https://youtu.be/Jsj08lTBkVU", "date": "7/23/2022"}, 
+			{ "title": "Dave Deacon Camp.", "lat": 38.3896531, "lon": -115.1340449, "url": "https://youtu.be/6nvxZWdPYtI", "date": "7/16/2022"}, 
+			{ "title": "Hot Creek Spring", "lat": 38.3816753, "lon": -115.1533850, "url": "https://youtu.be/6nvxZWdPYtI", "date": "7/16/2022"}, 
+			{ "title": "Dacey Reservoir", "lat": 38.3885260, "lon": -115.1169626, "url": "https://youtu.be/6nvxZWdPYtI", "date": "7/16/2022"}, 
+			{ "title": "Cedar Breaks Natl. Mon.", "lat": 37.6092146, "lon": -112.8381129, "url": "https://youtu.be/uHhQJSP5uz8", "date": "7/9/2022"}, 
+			{ "title": "Boondocking Spot", "lat": 37.5925331, "lon": -112.8474922, "url": "https://youtu.be/uHhQJSP5uz8", "date": "7/9/2022"}, 
+			{ "title": "Boondocking Spot", "lat": 37.5860672, "lon": -112.7432988, "url": "https://youtu.be/uHhQJSP5uz8", "date": "7/9/2022"}, 
+			{ "title": "Saddle Mountain Overlook", "lat": 36.3031496, "lon": -111.9946701, "url": "https://youtu.be/MPqiMH3GQnk", "date": "7/2/2022"}, 
+			{ "title": "Angel's Window", "lat": 36.1224834, "lon": -111.9493054, "url": "https://youtu.be/MPqiMH3GQnk", "date": "7/2/2022"}, 
+			{ "title": "Bright Angel  Point", "lat": 36.1938847, "lon": -112.0486449, "url": "https://youtu.be/MPqiMH3GQnk", "date": "7/2/2022"}, 
+			{ "title": "Marble Canyon", "lat": 36.1916692, "lon": -111.8110356, "url": "https://youtu.be/dGPXEnFqaMY", "date": "6/25/2022"}, 
+			{ "title": "Badger Canyon", "lat": 36.7744596, "lon": -111.6976981, "url": "https://youtu.be/dGPXEnFqaMY", "date": "6/25/2022"}, 
+			{ "title": "Grand (Marble) Canyon", "lat": 36.7765089, "lon": -111.6592435, "url": "https://youtu.be/OiIzH2NHJ4E", "date": "6/18/2022"}, 
+			{ "title": "Duluth", "lat": 46.7651049, "lon": -92.2760547, "url": "https://youtu.be/8szoIl3bJ0s", "date": "6/11/2022"}, 
+			{ "title": "Boondocking", "lat": 35.9761870, "lon": -111.7985866, "url": "https://youtu.be/-rjkbWNTsac", "date": "6/11/2022"}, 
+			{ "title": "Mogollon Rim", "lat": 34.4371410, "lon": -111.2935196, "url": "https://youtu.be/0y4YCuGnIrQ", "date": "6/4/2022"}, 
+			{ "title": "Verde Cyn. (Train)", "lat": 34.8364449, "lon": -112.0523028, "url": "https://youtu.be/9eGi7NSxi2w", "date": "5/28/2022"}, 
+			{ "title": "Verde River", "lat": 34.8364449, "lon": -112.0523028, "url": "https://youtu.be/alCdumcC5lc", "date": "5/21/2022"}, 
+			{ "title": "Sedona Camp. 1", "lat": 34.8262760, "lon": -112.0051723, "url": "https://youtu.be/L6EOUTT3FK8", "date": "5/14/2022"}, 
+			{ "title": "Sedona Camp. 2", "lat": 34.8387581, "lon": -111.9875998, "url": "https://youtu.be/L6EOUTT3FK8", "date": "5/14/2022"}, 
+			{ "title": "Sedona (Forest 525 Rd.)", "lat": 34.874663, "lon": -111.9157149, "url": "https://youtu.be/0gIzjIGk78k", "date": "5/7/2022"}, 
+			{ "title": "Sycamore Cyn. 1", "lat": 35.0330465, "lon": -111.9793544, "url": "https://youtu.be/66R_PgeUMas", "date": "4/30/2022"}, 
+			{ "title": "Sycamore Cyn. 2", "lat": 35.0427588, "lon": -111.9984745, "url": "https://youtu.be/66R_PgeUMas", "date": "4/30/2022"}, 
+			{ "title": "Sycamore Falls", "lat": 35.1404544, "lon": -112.0292348, "url": "https://youtu.be/hVAU9jCQ5bg", "date": "4/23/2022"}, 
+			{ "title": "Thumb Butte Rec. Area", "lat": 34.5267688, "lon": -112.5458497, "url": "https://youtu.be/wT-D4erWURc", "date": "4/16/2022"}, 
+			{ "title": "Alamo Lake", "lat": 34.2645676, "lon": -113.5680392, "url": "https://youtu.be/ea_oSzY_jn0", "date": "4/9/2022"}, 
+			{ "title": "Lake Havasu", "lat": 34.5100531, "lon": -114.3935398, "url": "https://youtu.be/1wai2MNXu_Y", "date": "4/2/2022"}, 
+			{ "title": "Craggy Wash", "lat": 34.5936024, "lon": -114.3594494, "url": "https://youtu.be/gnrkl0DupTs", "date": "3/26/2022"}, 
+			{ "title": "Standard Wash", "lat": 34.4316121, "lon": -114.1907955, "url": "https://youtu.be/gnrkl0DupTs", "date": "3/26/2022"}, 
+			{ "title": "Blankenship Wash", "lat": 34.608274, "lon": -114.371289, "url": "https://youtu.be/gnrkl0DupTs", "date": "3/26/2022"}, 
+			{ "title": "Cattail Cove SP", "lat": 34.3515143, "lon": -114.1697365, "url": "https://youtu.be/gnrkl0DupTs", "date": "3/26/2022"}, 
+			{ "title": "Valley of Fire SP", "lat": 36.4757393, "lon": -114.540764, "url": "https://youtu.be/5vwI6NhHCSE", "date": "3/19/2022"}, 
+			{ "title": "Snowbird Mesa", "lat": 36.4851937, "lon": -114.4475080, "url": "https://youtu.be/GTfHk6PSP48", "date": "3/12/2022"}, 
+			{ "title": "Stewart's Point", "lat": 36.3648450, "lon": -114.3956241, "url": "https://youtu.be/GTfHk6PSP48", "date": "3/12/2022"}, 
+			{ "title": "Six Mile Cove", "lat": 35.4540670, "lon": -114.6784090, "url": "https://youtu.be/WgiqCLWIZkc", "date": "3/5/2022"}, 
+			{ "title": "Joshua Tree Forest", "lat": 35.5071215, "lon": -115.0690007, "url": "https://youtu.be/WgiqCLWIZkc", "date": "3/5/2022"}, 
+			{ "title": "Spencer Hot Springs", "lat": 39.3268733, "lon": -116.8598052, "url": "https://youtu.be/IKQD3DzSIHM", "date": "2/26/2022"}, 
+			{ "title": "Timberline Lodge", "lat": 45.3307954, "lon": -121.7131528, "url": "https://youtu.be/nsmQXzJB7N4", "date": "2/5/2022"}, 
+			{ "title": "Wild Willy’s Hot Spring", "lat": 37.6592206, "lon": -118.7711666, "url": "https://youtu.be/eAcTeKWGV7I", "date": "1/22/2022"}, 
+			{ "title": "Travertine Hot Spring Bndck.", "lat": 38.2544370, "lon": -119.2101966, "url": "https://youtu.be/eAcTeKWGV7I", "date": "1/22/2022"}, 
+			{ "title": "Travertine Hot Springs", "lat": 38.2453885, "lon": -119.2052201, "url": "https://youtu.be/eAcTeKWGV7I", "date": "1/22/2022"}, 
+			{ "title": "Mexican Hat Rock", "lat": 37.1715382, "lon": -109.8529865, "url": "https://youtu.be/Ilqele4M9FU", "date": "1/15/2022"}, 
+			{ "title": "Moki Dugway", "lat": 37.2378760, "lon": -109.9808820, "url": "https://youtu.be/ne7LMc_dg6I", "date": "12/25/2021"}, 
+			{ "title": "Klondike’s Bluff", "lat": 38.7407859, "lon": -109.7341000, "url": "https://youtu.be/vlhHDVdgytA", "date": "11/21/2021"}, 
+			{ "title": "Copper Ridge  Camp.", "lat": 38.7443978, "lon": -109.6750639, "url": "https://youtu.be/vlhHDVdgytA", "date": "11/21/2021"}, 
+			{ "title": "Hiking", "lat": 38.7642970, "lon": -109.6695850, "url": "https://youtu.be/vlhHDVdgytA", "date": "11/21/2021"}, 
+			{ "title": "The Wall", "lat": 43.9082314, "lon": -102.2280367, "url": "https://youtu.be/zkRHEt6WmPk", "date": "11/20/2021"}, 
+			{ "title": "Picnic Spring Camp.", "lat": 45.8727465, "lon": -103.4859944, "url": "https://youtu.be/vLtfwdN_UHc", "date": "11/13/2021"}, 
+			{ "title": "Beet Harvest", "lat": 47.7128295, "lon": -104.1917759, "url": "https://youtu.be/uWtACMkjoWw", "date": "10/31/2020", "url2": "https://youtu.be/gXjqdA2xXVg", "date2": "10/30/2021"}, 
+			{ "title": "Buena Vista", "lat": 38.6642684, "lon": -106.1554777, "url": "https://youtu.be/vkvjeso3Igw", "date": "10/16/2021"}, 
+			{ "title": "Near Denver", "lat": 39.3447881, "lon": -105.2719667, "url": "https://youtu.be/_ea44X2d0S0", "date": "10/2/2021"}, 
+			{ "title": "Nomad Meetup (Gutted)", "lat": 37.4644525, "lon": -105.9237112, "url": "https://youtu.be/WzWWBVHYcaw", "date": "9/18/2021"}, 
+			{ "title": "Dugway Camp.", "lat": 41.8615787, "lon": -107.0558268, "url": "https://youtu.be/ZWGBVHoY5GE", "date": "9/11/2021"}, 
+			{ "title": "Williams Fork Rsrvr.", "lat": 40.0133969, "lon": -106.2006179, "url": "https://youtu.be/zwN4_rbj6Fo", "date": "9/4/2021"}, 
+			{ "title": "Beaver Creek Plat.", "lat": 40.0291515, "lon": -106.0987446, "url": "https://youtu.be/n2zX8A05JqQ", "date": "8/28/2021"}, 
+			{ "title": "Hot Sulpher Springs", "lat": 40.0485193, "lon": -106.1291625, "url": "https://youtu.be/n2zX8A05JqQ", "date": "8/28/2021"}, 
+			{ "title": "High Elev. Meadow", "lat": 39.9310016, "lon": -105.9818972, "url": "https://youtu.be/n2zX8A05JqQ", "date": "8/28/2021"}, 
+			{ "title": "Turquoise Lake Bndckng.", "lat": 39.2457862, "lon": -106.3614180, "url": "https://youtu.be/2K2Q_MPLGiY", "date": "8/21/2021"}, 
+			{ "title": "Grassy Bndckng.", "lat": 39.2782550, "lon": -106.3429010, "url": "https://youtu.be/2K2Q_MPLGiY", "date": "8/21/2021"}, 
+			{ "title": "Timberline Creek Trl.", "lat": 39.2850043, "lon": -106.4467404, "url": "https://youtu.be/2K2Q_MPLGiY", "date": "8/21/2021"}, 
+			{ "title": "Independence Pass", "lat": 39.1085678, "lon": -106.5743009, "url": "https://youtu.be/3YJPM56oAyE", "date": "8/18/2021"}, 
+			{ "title": "Lake Side", "lat": 39.0756794, "lon": -106.3090935, "url": "https://youtu.be/xWQCCgTpgzY", "date": "8/14/2021"}, 
+			{ "title": "Hill Top View", "lat": 39.1001165, "lon": -106.3640231, "url": "https://youtu.be/xWQCCgTpgzY", "date": "8/14/2021"}, 
+			{ "title": "Silverjack Reservoir", "lat": 38.2011123, "lon": -107.5124981, "url": "https://youtu.be/ztQcep4tW30", "date": "8/7/2021"}, 
+			{ "title": "Goldenhorn Camp.", "lat": 37.8127141, "lon": -107.7432723, "url": "https://youtu.be/L3Y91HWwvQM", "date": "7/31/2021"}, 
+			{ "title": "Million Dollar Hwy.", "lat": 37.9152488, "lon": -107.703067, "url": "https://youtu.be/4S2sxl4u91I", "date": "7/28/2021"}, 
+			{ "title": "Silverton", "lat": 37.8099635, "lon": -107.6740187, "url": "https://youtu.be/K9sd3ciXYIM", "date": "7/24/2021"}, 
+			{ "title": "US-550", "lat": 37.699387, "lon": -107.7790135, "url": "https://youtu.be/qjl1iY9uYJw", "date": "7/17/2021"}, 
+			{ "title": "Wahoo Bay", "lat": 35.8785522, "lon": -95.2829361, "url": "https://youtu.be/DYPvZ0lgBDU", "date": "7/10/2021"}, 
+			{ "title": "Lake Meredith", "lat": 35.7066284, "lon": -101.5674224, "url": "https://youtu.be/DYPvZ0lgBDU", "date": "7/10/2021", "url2": "https://youtu.be/38p628P7YCw", "date2": "11/18/2023"}, 
+			{ "title": "Pharaoh Camp.", "lat": 37.6029206, "lon": -88.3804748, "url": "https://youtu.be/GadXsmDyhNA", "date": "7/3/2021"}, 
+			{ "title": "Tower Rock Camp.", "lat": 37.4580835, "lon": -88.2336963, "url": "https://youtu.be/GadXsmDyhNA", "date": "7/3/2021"}, 
+			{ "title": "Hocking Hills SP", "lat": 39.4334918, "lon": -82.5507929, "url": "https://youtu.be/KVfDlq0tOOk", "date": "6/26/2021"}, 
+			{ "title": "Lehman's", "lat": 40.7414514, "lon": -81.7479159, "url": "https://youtu.be/KVfDlq0tOOk", "date": "6/26/2021"}, 
+			{ "title": "Sundance Lake", "lat": 39.0643443, "lon": -86.1127803, "url": "https://youtu.be/KVfDlq0tOOk", "date": "6/26/2021"}, 
+			{ "title": "Hook lake Camp. A", "lat": 39.7291800, "lon": -81.7055010, "url": "https://youtu.be/hFRSqX3BS7o", "date": "6/19/2021"}, 
+			{ "title": "Hook lake Camp. C", "lat": 39.7348876, "lon": -81.7315730, "url": "https://youtu.be/hFRSqX3BS7o", "date": "6/19/2021"}, 
+			{ "title": "Hook lake Camp. K", "lat": 39.7759986, "lon": -81.6456478, "url": "https://youtu.be/hFRSqX3BS7o", "date": "6/19/2021"}, 
+			{ "title": "Turkey Foot Camp.", "lat": 37.467825, "lon": -83.917371, "url": "https://youtu.be/YcYSuTMe0wY", "date": "6/12/2021"}, 
+			{ "title": "Little Lick Camp.", "lat": 36.9632257, "lon": -84.401398, "url": "https://youtu.be/QBTJBQftXuI", "date": "6/5/2021"}, 
+			{ "title": "Yahoo Falls", "lat": 36.7716438, "lon": -84.5120627, "url": "https://youtu.be/QBTJBQftXuI", "date": "6/5/2021"}, 
+			{ "title": "Cumberland Falls", "lat": 36.8389703, "lon": -84.3452147, "url": "https://youtu.be/QBTJBQftXuI", "date": "6/5/2021"}, 
+			{ "title": "Long Hungary Rd. Camp.", "lat": 35.32766995, "lon": -83.86900636, "url": "https://youtu.be/oZaVj0GWEOU", "date": "5/29/2021"}, 
+			{ "title": "Brush Creek Park", "lat": 34.9016498, "lon": -87.9948449, "url": "https://youtu.be/SLvwMEXp-mI", "date": "5/22/2021"}, 
+			{ "title": "Natchez Trace Pkwy.", "lat": 33.7668686, "lon": -89.0213314, "url": "https://youtu.be/mUISInxp5aQ", "date": "5/15/2021"}, 
+			{ "title": "New Orleans", "lat": 30.0321227, "lon": -90.5057603, "url": "https://youtu.be/RyblICVXsaQ", "date": "5/1/2021"}, 
+			{ "title": "Big Fir Camp.", "lat": 34.60522, "lon": -93.40805, "url": "https://youtu.be/72C1hyeGpfA", "date": "4/24/2021"}, 
+			{ "title": "Tullahassee Loop RA", "lat": 35.89205, "lon": -95.44849, "url": "https://youtu.be/j_PRIZL3XgA", "date": "4/17/2021"}, 
+			{ "title": "Steele Creek Park", "lat": 32.0033560, "lon": -97.4461550, "url": "https://youtu.be/d4sXlMHekME", "date": "4/10/2021"}, 
+			{ "title": "Port Aransas", "lat": 27.8340534, "lon": -97.0460340, "url": "https://youtu.be/SYqbM55rhNU", "date": "4/3/2021"}, 
+			{ "title": "Padre Is. Natl. Seashore", "lat": 27.0854918, "lon": -97.3866997, "url": "https://youtu.be/Z-R0kvsh9D0", "date": "3/27/2021"}, 
+			{ "title": "S. Padre Island", "lat": 26.2465193, "lon": -97.1862941, "url": "https://youtu.be/OWZlU21uezM", "date": "3/19/2021", "url2": "https://youtu.be/BVlZrsVGRzw", "date2": "3/6/2021"}, 
+			{ "title": "Big Bend NP", "lat": 29.2510652, "lon": -103.0258557, "url": "https://youtu.be/2nDD30yZ82w", "date": "3/13/2021"}, 
+			{ "title": "Marfa Rest Stop", "lat": 30.2754546, "lon": -103.8865803, "url": "https://youtu.be/BVlZrsVGRzw", "date": "3/6/2021"}, 
+			{ "title": "Big Bend Camp.", "lat": 29.2510652, "lon": -103.0258557, "url": "https://youtu.be/BVlZrsVGRzw", "date": "3/6/2021"}, 
+			{ "title": "Ft. Lancaster Overlook", "lat": 30.6783213, "lon": -101.675497, "url": "https://youtu.be/BVlZrsVGRzw", "date": "3/6/2021"}, 
+			{ "title": "Magnolia Beach", "lat": 28.5599450, "lon": -96.5366956, "url": "https://youtu.be/BVlZrsVGRzw", "date": "3/6/2021"}, 
+			{ "title": "Round Mountain BLM", "lat": 32.4761500, "lon": -109.0744684, "url": "https://youtu.be/jDNV-RKkOlQ", "date": "2/27/2021"}, 
+			{ "title": "Ajo", "lat": 32.3270031, "lon": -112.8678599, "url": "https://youtu.be/nJd8Hgju-nQ", "date": "2/20/2021"}, 
+			{ "title": "BANWR Rd. Camp.", "lat": 31.6562568, "lon": -111.4398274, "url": "https://youtu.be/HDpARNavCBs", "date": "2/13/2021"}, 
+			{ "title": "Patagonia", "lat": 31.454761, "lon": -110.6510242, "url": "https://youtu.be/MVr2Hm9n7zo", "date": "2/6/2021"}, 
+			{ "title": "Glacier NP", "lat": 48.6601302, "lon": -114.1761786, "url": "https://youtu.be/T1d47Y2D9GA", "date": "1/30/2021", "url2": "https://youtu.be/IY_L3C9d7g4", "date2": "12/26/2020"}, 
+			{ "title": "Tombstone", "lat": 31.8745832, "lon": -110.0219919, "url": "https://youtu.be/s1YL9cY0Sk4", "date": "1/23/2021"}, 
+			{ "title": "Calf Creek Falls", "lat": 37.8938836, "lon": -111.4702420, "url": "https://youtu.be/UEheH7CDN6M", "date": "1/16/2021"}, 
+			{ "title": "Torrey", "lat": 38.2980884, "lon": -111.3886589, "url": "https://youtu.be/UEheH7CDN6M", "date": "1/16/2021"}, 
+			{ "title": "Scenic Byway 12", "lat": 37.7525569, "lon": -111.6979227, "url": "https://youtu.be/H4_Th75fMl0", "date": "1/13/2021"}, 
+			{ "title": "The Wave", "lat": 36.9959312, "lon": -113.1268647, "url": "https://youtu.be/OMIQQBeeZ9E", "date": "1/9/2021"}, 
+			{ "title": "Meadow Hot Spring", "lat": 38.8637984, "lon": -112.5117899, "url": "https://youtu.be/KO5e6NM10Bk", "date": "1/2/2021"}, 
+			{ "title": "Melrose", "lat": 45.624686, "lon": -112.6886697, "url": "https://youtu.be/IY_L3C9d7g4", "date": "12/26/2020"}, 
+			{ "title": "Firth", "lat": 43.3084959, "lon": -112.1928933, "url": "https://youtu.be/IY_L3C9d7g4", "date": "12/26/2020"}, 
+			{ "title": "Lava Hot Springs", "lat": 42.6212624, "lon": -111.9906878, "url": "https://youtu.be/IY_L3C9d7g4", "date": "12/26/2020"}, 
+			{ "title": "Mt. Nebo Scenic Bywy.", "lat": 39.7144471, "lon": -111.759327, "url": "https://youtu.be/IY_L3C9d7g4", "date": "12/26/2020"}, 
+			{ "title": "Stanley", "lat": 44.1718802, "lon": -114.9053812, "url": "https://youtu.be/-G3AIg0v73Y", "date": "12/19/2020"}, 
+			{ "title": "Salmon River", "lat": 44.1718802, "lon": -114.9053812, "url": "https://youtu.be/ymgsg7MEcEk", "date": "12/12/2020"}, 
+			{ "title": "Boat Box Hot Spring", "lat": 44.2448474, "lon": -114.8860331, "url": "https://youtu.be/ymgsg7MEcEk", "date": "12/12/2020"}, 
+			{ "title": "Gold Bug Hot Spring", "lat": 44.9071908, "lon": -113.9284553, "url": "https://youtu.be/9qlxnHlm74g", "date": "12/5/2020"}, 
+			{ "title": "Kirkham Hot Springs", "lat": 44.0715, "lon": -115.5428, "url": "https://youtu.be/uOy6DfrNA3A", "date": "11/28/2020"}, 
+			{ "title": "Boondocking", "lat": 44.0731908, "lon": -115.5089289, "url": "https://youtu.be/uOy6DfrNA3A", "date": "11/28/2020"}, 
+			{ "title": "Iron Creek Camp.", "lat": 44.1979, "lon": -115.0114, "url": "https://youtu.be/6iqNV3ar8hc", "date": "11/21/2020"}, 
+			{ "title": "Stanley Lake Camp.", "lat": 44.2491, "lon": -115.0548, "url": "https://youtu.be/6iqNV3ar8hc", "date": "11/21/2020"}, 
+			{ "title": "Sunny Gulch Camp.", "lat": 44.1764, "lon": -114.9091, "url": "https://youtu.be/6iqNV3ar8hc", "date": "11/21/2020"}, 
+			{ "title": "Cowens Cove Camp.", "lat": 45.7008, "lon": -69.6837, "url": "https://youtu.be/6iqNV3ar8hc", "date": "11/21/2020"}, 
+			{ "title": "Madrona Camp.", "lat": 41.8568, "lon": -123.8850, "url": "https://youtu.be/6iqNV3ar8hc", "date": "11/21/2020"}, 
+			{ "title": "McMillan Camp.", "lat": 32.9255, "lon": -108.2130, "url": "https://youtu.be/6iqNV3ar8hc", "date": "11/21/2020"}, 
+			{ "title": "Willow Lake Camp.", "lat": 42.9923, "lon": -109.9038, "url": "https://youtu.be/6iqNV3ar8hc", "date": "11/21/2020"}, 
+			{ "title": "Sawtooth Natl. Forest", "lat": 44.2488, "lon": -115.0472, "url": "https://youtu.be/urzCcrThKzM", "date": "11/14/2020"}, 
+			{ "title": "Devil's Canyon Overlook", "lat": 45.0215051, "lon": -108.252315, "url": "https://youtu.be/sbZY0m4yY8M", "date": "11/7/2020"}, 
+			{ "title": "Hot Springs SP", "lat": 43.6499168, "lon": -108.2058257, "url": "https://youtu.be/lTzTL3yBA8c", "date": "10/24/2020"}, 
+			{ "title": "Boondocking", "lat": 42.9575677, "lon": -109.8399591, "url": "https://youtu.be/5T3pZYeGVV4", "date": "10/17/2020"}, 
+			{ "title": "Willow Lake", "lat": 42.9922, "lon": -109.9038, "url": "https://youtu.be/aucwP6T_aUE", "date": "10/10/2020"}, 
+			{ "title": "Big Sandy Trail", "lat": 42.6885017, "lon": -109.2695974, "url": "https://youtu.be/xO_SoQginQo", "date": "9/19/2020", "url2": "https://youtu.be/WMaglqJajg4", "date2": "9/26/2020"}, 
+			{ "title": "Boondocking", "lat": 43.5107028, "lon": -110.6499688, "url": "https://youtu.be/SxP6DbKVFW0", "date": "9/12/2020"}, 
+			{ "title": "Grand Tetons", "lat": 43.7002788, "lon": -110.6173525, "url": "https://youtu.be/6Ohx1Yq_0TM", "date": "9/5/2020"}, 
+			{ "title": "Boondocking", "lat": 43.5664015, "lon": -111.2181442, "url": "https://youtu.be/ckJ9AlEIQBk", "date": "8/29/2020"}, 
+			{ "title": "Nine Mile Creek", "lat": 48.5382910, "lon": -118.6105687, "url": "https://youtu.be/4PWqk8ZBQ9M", "date": "8/22/2020"}, 
+			{ "title": "Boundary Dam Camp.", "lat": 48.98401, "lon": -117.35178, "url": "https://youtu.be/Hfc5gj0jU_8", "date": "8/16/2020", "url2": "https://youtu.be/6iqNV3ar8hc", "date2": "11/21/2020"}, 
+			{ "title": "Hog Lake", "lat": 47.3775, "lon": -117.8131, "url": "https://youtu.be/CiPen8Gf-m8", "date": "8/9/2020"}, 
+			{ "title": "Takh Takh Meadow", "lat": 46.26968, "lon": -121.58756, "url": "https://youtu.be/g-_QWmkh7Ek", "date": "8/2/2020"}, 
+			{ "title": "Tamanawas Falls", "lat": 45.4008456, "lon": -121.5900437, "url": "https://youtu.be/AFjyucC-9kw", "date": "7/29/2020"}, 
+			{ "title": "Takhlakh Lake", "lat": 46.1647, "lon": -121.3559, "url": "https://youtu.be/09o78HbiG74", "date": "7/26/2020"}, 
+			{ "title": "Hood River U-Pick", "lat": 45.6671748, "lon": -121.5680246, "url": "https://youtu.be/U76i1Qct5TY", "date": "7/22/2020"}, 
+			{ "title": "White River Sno-Park", "lat": 45.3023836, "lon": -121.6738218, "url": "https://youtu.be/MvYobOpqVc4", "date": "7/19/2020"}, 
+			{ "title": "Boondocking", "lat": 45.8162, "lon": -123.5083, "url": "https://youtu.be/JraZhQ1L3gQ", "date": "7/12/2020"}, 
+			{ "title": "South Lake", "lat": 45.2018093, "lon": -123.7232118, "url": "https://youtu.be/J-vgvJvlElw", "date": "7/5/2020"}, 
+			{ "title": "Thor's Well", "lat": 44.2783975, "lon": -124.1143308, "url": "https://youtu.be/PBVv6719H9g", "date": "7/1/2020"}, 
+			{ "title": "Chetco River", "lat": 42.13969, "lon": -124.17795, "url": "https://youtu.be/s9hdHp8qOwk", "date": "6/28/2020"}, 
+			{ "title": "Brooking's Harbor", "lat": 42.0533067, "lon": -124.2717523, "url": "https://youtu.be/BonX01zNK60", "date": "6/24/2020"}, 
+			{ "title": "Madrona Camp.", "lat": 41.8568472, "lon": -123.8851351, "url": "https://youtu.be/oFg9ARecBlY", "date": "6/21/2020"}, 
+			{ "title": "DeMartin Picnic Area", "lat": 41.60326, "lon": -124.10083, "url": "https://youtu.be/wLBLfHVWZic", "date": "6/14/2020"}, 
+			{ "title": "Boondocking", "lat": 41.26291, "lon": -122.40771, "url": "https://youtu.be/idIE-Q90sOg", "date": "6/7/2020"}, 
+			{ "title": "Castle Lake", "lat": 41.23025, "lon": -122.38111, "url": "https://youtu.be/idIE-Q90sOg", "date": "6/7/2020"}, 
+			{ "title": "Boondocking", "lat": 41.4900012, "lon": -121.6153345, "url": "https://youtu.be/42Juub_wsjI", "date": "5/27/2020", "url2": "https://youtu.be/-ons3KfpJTg", "date2": "5/31/2020"}, 
+			{ "title": "Hat Creek", "lat": 40.6272748, "lon": -121.4662703, "url": "https://youtu.be/feZjDMQLpb0", "date": "5/24/2020"}, 
+			{ "title": "Subway Cave", "lat": 40.6848175, "lon": -121.4234786, "url": "https://youtu.be/HtzbTNS9TVo", "date": "5/20/2020"}, 
+			{ "title": "Bandelier Natl. Mon.", "lat": 35.7884144, "lon": -106.3383092, "url": "https://youtu.be/IV7RTc9iOCI", "date": "4/12/2020"}, 
+			{ "title": "Alum Cove Nat. Bridge RA", "lat": 35.8591803, "lon": -93.2383248, "url": "https://youtu.be/F1JeWOyccgk", "date": "4/8/2020"}, 
+			{ "title": "Indian Creek", "lat": 38.20253, "lon": -109.66905, "url": "https://youtu.be/dYYtebVACbQ", "date": "3/29/2020"}, 
+			{ "title": "Losee Trail", "lat": 37.76855, "lon": -112.33806, "url": "https://youtu.be/dYYtebVACbQ", "date": "3/29/2020"}, 
+			{ "title": "Alabama Hills", "lat": 36.599914, "lon": -118.11652, "url": "https://youtu.be/dYYtebVACbQ", "date": "3/29/2020"}, 
+			{ "title": "Hedge Creek Falls", "lat": 41.2373046, "lon": -122.27104, "url": "https://youtu.be/z55yQHwVGao", "date": "3/25/2020"}, 
+			{ "title": "North Battle Creek Rsrvr.", "lat": 40.6025936, "lon": -121.6571186, "url": "URL", "date": "3/22/2020"}, 
+			{ "title": "Ash Creek", "lat": 41.13014, "lon": -120.79105, "url": "https://youtu.be/wKJBt4y1Lbs", "date": "3/15/2020", "url2": "https://youtu.be/dYYtebVACbQ", "date2": "3/29/2020"}, 
+			{ "title": "Mill Creek Camp.", "lat": 41.2773812, "lon": -120.2935817, "url": "https://youtu.be/rT6bzcR964I", "date": "3/8/2020"}, 
+			{ "title": "Walter Lake", "lat": 38.6917572, "lon": -118.7775425, "url": "https://youtu.be/Go30UFUSXXg", "date": "3/1/2020"}, 
+			{ "title": "Seven Magic Mts.", "lat": 35.8401865, "lon": -115.2716812, "url": "https://youtu.be/_DqUitXWw-g", "date": "2/23/2020"}, 
+			{ "title": "Jean Dry Lake Beds", "lat": 35.6507767, "lon": -115.3700097, "url": "https://youtu.be/_DqUitXWw-g", "date": "2/23/2020"}, 
+			{ "title": "Lake Mead", "lat": 36.1246542, "lon": -114.8391814, "url": "https://youtu.be/_o8UPM4bm8g", "date": "2/16/2020"}, 
+			{ "title": "Arizona Hot Springs", "lat": 35.9656289, "lon": -114.7138663, "url": "https://youtu.be/_o8UPM4bm8g", "date": "2/16/2020"}, 
+			{ "title": "Craggy Wash", "lat": 34.5937366, "lon": -114.3399209, "url": "https://youtu.be/cWZ7PDd0xnU", "date": "2/9/2020"}, 
+			{ "title": "Verde Hot Springs", "lat": 34.3553826, "lon": -111.711187, "url": "https://youtu.be/uzWICoDRGPM", "date": "2/2/2020"}, 
+			{ "title": "Sedona", "lat": 34.88852, "lon": -111.90811, "url": "https://youtu.be/PlhX79H9_So", "date": "1/21/2020", "url2": "https://youtu.be/iNvNph0eRV0", "date2": "1/26/2020", "url3": "https://youtu.be/dYYtebVACbQ", "date3": "3/29/2020"}, 
+			{ "title": "Flagstaff", "lat": 35.1781157, "lon": -111.6473576, "url": "https://youtu.be/KhGOTY5y_Fs", "date": "1/19/2020"}, 
+			{ "title": "Grand Canyon", "lat": 35.8047094, "lon": -112.13721, "url": "https://youtu.be/KhGOTY5y_Fs", "date": "1/19/2020"}, 
+			{ "title": "Gila Hot Springs Camp.", "lat": 33.18390, "lon": -108.20553, "url": "https://youtu.be/IGbdqjbBQAA", "date": "1/12/2020", "url2": "https://youtu.be/dYYtebVACbQ", "date2": "3/29/2020"}, 
+			{ "title": "Apalachicola Natl. Forest", "lat": 30.0880431, "lon": -84.6785781, "url": "https://youtu.be/IGbdqjbBQAA", "date": "12/25/2019"}, 
+			{ "title": "Crystal River", "lat": 28.9084252, "lon": -82.6384619, "url": "https://youtu.be/iKs64bbZQNs", "date": "12/8/2019"}, 
+			{ "title": "Weeki Wachee Springs SP", "lat": 28.9084252, "lon": -82.6384619, "url": "https://youtu.be/iKs64bbZQNs", "date": "12/8/2019"}, 
+			{ "title": "Tiny LIVING Festival", "lat": 28.4813752, "lon": -81.5078192, "url": "https://youtu.be/-AZaPxgWx9w", "date": "11/27/2019"}, 
+			{ "title": "Santee Coastal Rsrv.", "lat": 33.1539131, "lon": -79.3682048, "url": "https://youtu.be/nO6Is2hR8Rs", "date": "11/24/2019"}, 
+			{ "title": "Chesapeake Bay Bridge-Tunnel", "lat": 37.0419831, "lon": -76.0713376, "url": "https://youtu.be/yRyD4lAxYPs", "date": "11/17/2019"}, 
+			{ "title": "New River Gorge NP", "lat": 38.0877266, "lon": -81.0567201, "url": "https://youtu.be/yRyD4lAxYPs", "date": "11/17/2019"}, 
+			{ "title": "E. Shore Of Virginia N.W.Refuge", "lat": 37.1320493, "lon": -75.9706087, "url": "https://youtu.be/ENQCGfsuAwY", "date": "11/10/2019"}, 
+			{ "title": "Plymouth", "lat": 41.8883862, "lon": -70.8000087, "url": "https://youtu.be/EiSJ6bNpN-k", "date": "11/3/2019"}, 
+			{ "title": "Austin Pond", "lat": 45.21521, "lon": -69.74291, "url": "https://youtu.be/y5E35wOJCUs", "date": "10/27/2019"}, 
+			{ "title": "Carrying Place Stream", "lat": 45.1798427, "lon": -70.017634, "url": "https://youtu.be/_le6d_V30pk", "date": "10/20/2019"}, 
+			{ "title": "Stonington", "lat": 44.1547189, "lon": -68.6681636, "url": "https://youtu.be/2KwdDF_DwtA", "date": "10/13/2019"}, 
+			{ "title": "W. Quoddy Head Lighthouse", "lat": 44.8141358, "lon": -66.9572189, "url": "https://youtu.be/gUoUqnnckmw", "date": "10/6/2019"}, 
+			{ "title": "Rocky Lake", "lat": 44.8584587, "lon": -67.4360609, "url": "https://youtu.be/gUoUqnnckmw", "date": "10/6/2019"}, 
+			{ "title": "New Brunswick", "lat": 45.8171767, "lon": -66.5933461, "url": "https://youtu.be/IUfvFta182A", "date": "9/29/2019"}, 
+			{ "title": "Jewett Cove", "lat": 45.6867924, "lon": -69.5544063, "url": "https://youtu.be/5WSZEGOEczw", "date": "9/22/2019"}, 
+			{ "title": "El Campo Van Festival", "lat": 46.3283103, "lon": -71.1559919, "url": "https://youtu.be/xSBZ6MON7aI", "date": "9/18/2019"}, 
+			{ "title": "Portland", "lat": 43.6671049, "lon": -70.2940873, "url": "https://youtu.be/Yyx_-kyOpq8", "date": "9/15/2019"}, 
+			{ "title": "Bridalveil Falls", "lat": 44.1603567, "lon": -71.734017, "url": "https://youtu.be/ai8Z9Cko9Xw", "date": "9/8/2019"}, 
+			{ "title": "Boondocking", "lat": 44.5229003, "lon": -71.2865819, "url": "https://youtu.be/Z-eEoUAed98", "date": "9/1/2019"}, 
+			{ "title": "Ben & Jerry's", "lat": 44.3529999, "lon": -72.7470773, "url": "https://youtu.be/nXyEgG7e5gY", "date": "8/25/2019"}, 
+			{ "title": "Bragg Farm Sugar House", "lat": 44.2813063, "lon": -72.4761092, "url": "https://youtu.be/nXyEgG7e5gY", "date": "8/25/2019"}, 
+			{ "title": "Warren Falls", "lat": 44.0940702, "lon": -72.8643914, "url": "https://youtu.be/nXyEgG7e5gY", "date": "8/25/2019"}, 
+			{ "title": "Lake Durant", "lat": 43.84718, "lon": -74.42215, "url": "https://youtu.be/z05MCBHtL5w", "date": "8/18/2019"}, 
+			{ "title": "Moose River Plains", "lat": 43.7207267, "lon": -74.7910115, "url": "https://youtu.be/OtYow_phOOA", "date": "8/11/2019"}, 
+			{ "title": "Cedar River", "lat": 43.72660, "lon": -74.47321, "url": "https://youtu.be/OtYow_phOOA", "date": "8/11/2019"}, 
+			{ "title": "Sarnia", "lat": 42.9934483, "lon": -82.4218598, "url": "https://youtu.be/f74DklUTNjQ", "date": "8/4/2019"}, 
+			{ "title": "Port Stanley", "lat": 42.6620229, "lon": -81.2125108, "url": "https://youtu.be/f74DklUTNjQ", "date": "8/4/2019"}, 
+			{ "title": "Niagra Falls", "lat": 43.079565, "lon": -79.0892918, "url": "https://youtu.be/f74DklUTNjQ", "date": "8/4/2019"}, 
+			{ "title": "Buck Creek Pond", "lat": 44.41327, "lon": -83.57657, "url": "https://youtu.be/Ymmu4o7t65Q", "date": "7/27/2019"}, 
+			{ "title": "Dark Sky", "lat": 45.77816, "lon": -84.79113, "url": "https://youtu.be/nchw3UYpovI", "date": "7/21/2019"}, 
+			{ "title": "McGulpin Rock", "lat": 45.78903, "lon": -84.77401, "url": "https://youtu.be/nchw3UYpovI", "date": "7/21/2019"}, 
+			{ "title": "Fishing Pier", "lat": 45.77728, "lon": -84.72119, "url": "https://youtu.be/nchw3UYpovI", "date": "7/21/2019"}, 
+			{ "title": "High Rock Bay", "lat": 47.4232738, "lon": -87.7151917, "url": "https://youtu.be/HFfa0aqf3EI", "date": "7/14/2019"}, 
+			{ "title": "Sault Ste. Marie", "lat": 46.4870535, "lon": -84.4183239, "url": "https://youtu.be/YyNVROvO_Ks", "date": "7/7/2019"}, 
+			{ "title": "Perrault Lake Camp.", "lat": 47.0293836, "lon": -88.7339603, "url": "https://youtu.be/LjA7cPaUpLw", "date": "6/29/2019"}, 
+			{ "title": "Canal Park", "lat": 46.7806851, "lon": -92.0920959, "url": "https://youtu.be/ddmBnckBDTI", "date": "6/23/2019", "url2": "https://youtu.be/p3OXLaU1aR0", "date2": "10/21/2023"}, 
+			{ "title": "Tettegouche SP", "lat": 47.3459997, "lon": -91.2093472, "url": "https://youtu.be/toTSSd2_190", "date": "6/16/2019"}, 
+			{ "title": "Black Beach", "lat": 47.2936914, "lon": -91.249007, "url": "https://youtu.be/eDye_2YfKZY", "date": "6/9/2019"}, 
+			{ "title": "Silver Bay Trl.", "lat": 47.2921889, "lon": -91.2990766, "url": "https://youtu.be/eDye_2YfKZY", "date": "6/9/2019"}, 
+			{ "title": "Oil & Gas Park", "lat": 30.2484678, "lon": -92.6693944, "url": "https://youtu.be/z2S787vd3hU", "date": "6/5/2019"}, 
+			{ "title": "Rutherford Beach", "lat": 29.759734, "lon": -93.126332, "url": "https://youtu.be/a0LYNsBxOg8", "date": "6/2/2019"}, 
+			{ "title": "Tanyard Creek Trl.", "lat": 36.4718867, "lon": -94.2635482, "url": "https://youtu.be/_Y3ykNZUjFc", "date": "5/26/2019"}, 
+			{ "title": "Pothole Pt. Trl.", "lat": 38.1702806, "lon": -109.8066397, "url": "https://youtu.be/tCepRJ7z83E", "date": "5/22/2019"}, 
+			{ "title": "Indian Creek", "lat": 38.0106516, "lon": -109.5393958, "url": "https://youtu.be/tSACfget9XE", "date": "5/19/2019"}, 
+			{ "title": "Klondike Bluffs Trl.", "lat": 38.7735901, "lon": -109.7127823, "url": "https://youtu.be/PkoyvEEcEuk", "date": "5/12/2019"}, 
+			{ "title": "Losee Canyon Trl.", "lat": 37.7695792, "lon": -112.3354723, "url": "https://youtu.be/kll3oyLV2vQ", "date": "5/8/2019"}, 
+			{ "title": "Wire Pass Trl.", "lat": 37.0188254, "lon": -112.0261828, "url": "https://youtu.be/6atNTplk4uo", "date": "5/5/2019"}, 
+			{ "title": "Carlsbad Caverns", "lat": 32.1754675, "lon": -104.4468132, "url": "https://youtu.be/1cOQTzoSglQ", "date": "4/28/2019"}, 
+			{ "title": "Sitting Bull Falls RA", "lat": 32.245309, "lon": -104.7020293, "url": "https://youtu.be/CdBEDye9c-k", "date": "4/26/2019"}, 
+			{ "title": "Black Hills Rockhounding", "lat": 32.8641074, "lon": -109.3947238, "url": "https://youtu.be/opnO4Y7oZyE", "date": "3/15/2019", "url2": "https://youtu.be/Ww9zLBHrsLI", "date2": "12/23/2023"}, 
+			{ "title": "Tonto Natl. Mon.", "lat": 33.6451018, "lon": -111.1136926, "url": "https://youtu.be/UNIVrXkOsRU", "date": "3/7/2019"}, 
+			{ "title": "Titus Canyon", "lat": 36.8247278, "lon": -117.0317516, "url": "https://youtu.be/Wd1mO5BEjgk", "date": "2/20/2019"}, 
+			{ "title": "Trona Pinnacles", "lat": 35.6183338, "lon": -117.3735433, "url": "https://youtu.be/GfVkEjwdkHE", "date": "2/17/2019"}, 
+			{ "title": "Alabama Hills", "lat": 36.5681123, "lon": -118.0947465, "url": "https://youtu.be/FTT7LAH7GJc", "date": "2/6/2019"}, 
+			{ "title": "Travertine Hot Springs", "lat": 38.245752, "lon": -119.2063162, "url": "https://youtu.be/uF1te00o4ws", "date": "1/30/2019"}, 
+			{ "title": "Mono Lake", "lat": 37.9787943, "lon": -119.1644927, "url": "https://youtu.be/kPws4Sy8mNo", "date": "1/18/2019"}, 
+			{ "title": "Bonita Pt. Lighthouse", "lat": 37.8151632, "lon": -122.5321948, "url": "https://youtu.be/SMLeCs2V98c", "date": "1/12/2019"}, 
+			{ "title": "Pier 39", "lat": 37.8086772, "lon": -122.4124013, "url": "https://youtu.be/SMLeCs2V98c", "date": "1/12/2019"}, 
+			{ "title": "Golden Gate Natl. RA", "lat": 37.8451879, "lon": -122.532658, "url": "https://youtu.be/T-RHZqzcIU4", "date": "1/6/2019"}
+		]
+	</script>
+</body>
+</html>
