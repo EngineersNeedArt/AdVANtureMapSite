@@ -5,35 +5,31 @@ html, body {
 }
 
 #map {
-    height: calc(100vh - 60px);
+    height: calc(100% - 60px);
     width: 100%;
 	position: relative;
+    box-sizing: border-box;
 }
 
 #footer {
-    height: 60px; /* Set the height of the content area */
+    height: 60px;
     width: 100%;
-}
-
-#map {
-    height: calc(100vh - 60px);
-    width: 100%;
-    position: relative; /* Required for positioning the button */
+    box-sizing: border-box;
 }
 
 #whereButton {
-	font-family: 'Open Sans', sans-serif; /* Change the font family */
-    font-size: 16px; /* Increase or decrease the font size */
-    font-weight: bold; /* Make the font bold */
-    border-radius: 4px; /* Add rounded corners */
+	font-family: 'Open Sans', sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 4px;
     border: 2px solid rgba(0, 0, 0, 0.25);
     background-color: #fff;
     
-    position: absolute; /* Position the button absolutely within the map container */
-    top: 10px; /* Adjust the top position as needed */
-    left: 50%; /* Position the button horizontally in the center */
-    transform: translateX(-50%); /* Adjust for the button's width */
-    z-index: 1000; /* Ensure the button is on top of the map */
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
     padding: 8px 12px;
     cursor: pointer;
 }
